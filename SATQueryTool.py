@@ -1342,7 +1342,7 @@ col23Form=workbook.add_format({'font_name':'Calibri','font_size':10,'bold':True,
 
 
 #define project color list [hex color, color format]
-colorList = (['#FF0000',col1Form],['#00FF00',col2Form],['#0000FF',col3Form],['#FF00FF',col4Form],['#00FFFF',col5Form],['#FFCC00',col6Form],['#FF9900',col7Form],['#99CC00',col8Form],['#800000',col9Form],['#3366FF',col10Form],['#9999FF',col11Form],['#800080',col12Form],['#339966',col13Form],['#008000',col14Form],['#000080',col15Form],['#808000',col16Form],['#808080',col17Form],['#008080',col18Form],['#003300',col19Form],['#FF6600',col20Form],['#C0C0C0',col21Form],['#993366',col22Form],['#660066',col23Form],['#FF8080',col24Form],['#0066CC',col25Form])
+colorList = (['#FF0000',col1Form],['#00FF00',col2Form],['#0000FF',col3Form],['#FF00FF',col4Form],['#00FFFF',col5Form],['#FFCC00',col6Form],['#FF9900',col7Form],['#99CC00',col8Form],['#800000',col9Form],['#3366FF',col10Form],['#9999FF',col11Form],['#800080',col12Form],['#339966',col13Form],['#008000',col14Form],['#000080',col15Form],['#808000',col16Form],['#808080',col17Form],['#008080',col18Form],['#003300',col19Form],['#FF6600',col20Form],['#C0C0C0',col21Form],['#993366',col22Form],['#660066',col23Form])
 
 #set counter for tracking projects
 p = 0
