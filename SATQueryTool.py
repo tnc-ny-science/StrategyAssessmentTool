@@ -7,7 +7,7 @@
 #
 # Created:     15/05/2019
 # Copyright:   (c) shannon.thol 2019
-# Licence:     CRAPL
+# Licence:     
 #-------------------------------------------------------------------------------
 
 #Load packages, etc.
