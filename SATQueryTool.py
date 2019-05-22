@@ -471,7 +471,7 @@ if len(gridList) > 1:
     arcpy.Merge_management(mergeList, intersect)
 
     #Clean up individual intersection results
-    for intItem in intersect:
+    for intItem in mergeList:
         arcpy.Delete_management(intItem)
 
 #If gridList has only one item, proceed with a single intersect and summary step
