@@ -1964,7 +1964,7 @@ if spatial == 'true':
             exe = 1
             #iterate through results for currId
             for attribute in spatialOrder:
-                attExe = idResults[attribute][2]
+                attExe = idResults[attribute][3]
                 if attExe == 'Null':
                     pass
                 else:
