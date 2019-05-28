@@ -7,7 +7,7 @@
 #
 # Created:     15/05/2019
 # Copyright:   (c) shannon.thol 2019
-# Licence:     
+# Licence:
 #-------------------------------------------------------------------------------
 
 #Load packages, etc.
@@ -34,55 +34,80 @@ fooTime = time.strftime("%b %d, %Y %I:%M %p", time.localtime()) #Mon Day, Year H
 runStamp = user + "_" + str(currTime[0]) + str(currTime[1]) + str(currTime [2]) + "_" + str(currTime[3]) + str(currTime[4]) #name_yyyymmdd_hhmm
 
 #Set cell size environment, snapping environment, coordinate system as consistent with the 2011 NLCD grid
-print "Setting environment parameters ..."
+print "Setting environment parameters and locating reference data ..."
 arcpy.AddMessage("Setting environment parameters ...")
-nlcd = "D:\\gisdata\\Projects\\Regional\\ConservationDimensions\\General\\LandCover.gdb\\NLCD_2011_landcover_NYR"
-satLulc = "D:\\gisdata\\Projects\\Regional\\ConservationDimensions\\ZonalStatsTool\\DiversityGrids.gdb\\satlulc"
-arcpy.env.cellSize = 30
-arcpy.env.snapRaster = nlcd
-arcpy.env.outputCoordinateSystem = nlcd
-coorSystem = arcpy.Describe(nlcd).spatialReference
+coorSystem = arcpy.SpatialReference(5070) #5070 = WKID code for NAD_1983_Contiguous_USA_Albers
 
 ##############################################################################################################################################################################################################################################################
-#Get path for proposed project shapes and name of unique ID field from user input
-##projects = arcpy.GetParameterAsText(0)
-projects = r'D:\gisdata\Personal\cjage\BRV\New WQIP Data\AdkTugHillDrinkingWater.gdb\BRV_Well_Properties'
+#Get paths of external data and files needed for analysis
 
-#Get query name from user input
-##queEntName = arcpy.GetParameterAsText(1)
-queEntName = "BRVWellProperties"
-queName = re.sub('\W+','',queEntName.lower())
+#percentile rank master reference table for calculating efficiency scores
+pctTable = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_Data4SATquerytool\\PercentileTables_MASTER.xls"
 
-#Get name of unique numeric ID field (MUST BE INTEGER FIELD) from user input
-##projIDField = arcpy.GetParameterAsText(2)
-projIDField = "SAT_ID"
+#spp presence/absence csv table for use in terrestrial diversity calculations
+sppData = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_Data4SATquerytool\\hyperspp_vals.csv"
 
-#Get optional name of project "name" field from user input
-##projNameField = 'SAT_Manage'
-projNameField = "PRIMARY_OW"
+#30k polygon grids for identifying point feature class(es) to use in spatial intersection(s)
+grid30K = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_Data4SATquerytool\\SAT_30K_GRID.gdb\SAT_30K_GRID"
 
-#Get path for directory to write individual reports from user input
-##outDir = arcpy.GetParameterAsText(4)
-outDir = r"D:\gisdata\Personal\sthol\SATQueryTool\Tests"
+#gdb of sensitivity point feature classes for use in calculating intersection(s)
+ptsGdb = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_Data4SATquerytool\\SAT_30K_GRID_PTS.gdb"
 
-#Get user input on whether they want the results written in individual reports for projects
-##report = arcpy.GetParameterAsText(5)
-report = 'false'
+#paths to shape png files for writing to results spreadsheet legend
+circle = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_Data4SATquerytool\\shape_circle.png"
+diamond = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_Data4SATquerytool\\shape_diamond.png"
+square = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_Data4SATquerytool\\shape_square.png"
+star = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_Data4SATquerytool\\shape_star.png"
+triangle = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_Data4SATquerytool\\shape_triangle.png"
 
-#Get user input on whether they want maps auto generated **Currently not operational!
-##maps = arcpy.GetParameterAsText(6)
-maps = 'false'
-
-#Get user input on whether they want the results in spatial format (dissolved feature class with attributes)
-##spatial = arcpy.GetParameterAsText(7)
-spatial = 'true'
+#paths to shape and results archives for saving a copy of the spatial input and results spreadsheet
+shapeArchive = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_QueryToolArchive\\ShapeArchive.gdb"
+resultsArchive = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_QueryToolArchive\\ResultsArchive"
 
 ############################################################################################################################################################################################################################################################
 #get location of user's default geodatabase and set it as the scratch space
 scratch = 'D:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS\\Default.gdb'
 
+#set path to default SAT workspace
+tempGdb = 'D:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS\\SATworkspace.gdb'
+
+#if the SATworkspace gdb already exists, set is as the workspace
+if arcpy.Exists(tempGdb):
+    arcpy.env.workspace = tempGdb
+
+#if the SATworkspace gdb doesn't already exist, create it and set it as the workspace
+else:
+    arcpy.CreateFileGDB_management('D:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS', 'SATworkspace.gdb')
+    arcpy.env.workspace = tempGdb
+
 #create empty list for storing paths of temp data that need to be deleted at end of run
 toDelete = list()
+
+##############################################################################################################################################################################################################################################################
+#Get path for proposed project shapes and name of unique ID field from user input
+projects = arcpy.GetParameterAsText(0)
+
+#Get query name from user input
+queEntName = arcpy.GetParameterAsText(1)
+queName = re.sub('\W+','',queEntName.lower())
+
+#Get name of unique numeric ID field (MUST BE INTEGER FIELD) from user input
+projIDField = arcpy.GetParameterAsText(2)
+
+#Get optional name of project "name" field from user input
+projNameField = arcpy.GetParameterAsText(3)
+
+#Get path for directory to write individual reports from user input
+outDir = arcpy.GetParameterAsText(4)
+
+#Get user input on whether they want the results written in individual reports for projects
+report = arcpy.GetParameterAsText(5)
+
+#Get user input on whether they want maps auto generated **Currently not operational!
+maps = arcpy.GetParameterAsText(6)
+
+#Get user input on whether they want the results in spatial format (dissolved feature class with attributes)
+spatial = arcpy.GetParameterAsText(7)
 
 ############################################################################################################################################################################################################################################################
 #Derive path for output excel spreadsheet and pdf report based on user supplied output directory, query name, and name/time run stamp
@@ -93,7 +118,7 @@ outReport = outDir + "\\SATReport_" + str(queName) + "_" + str(runStamp) + ".xls
 outPdf = outDir + "\\SATReport_" + str(queName) + "_" + str(runStamp) + ".pdf"
 
 ############################################################################################################################################################################################################################################################
-#Name reference data (unless attributes are added or removed from the tool, or outputs are changed significantly these should remain constant)
+#Attribute and LULC name reference data (UNLESS ATTRIBUTES ARE ADDED OR REMOVED FROM THE TOOL, OR OUTPUTS ARE CHANGED SIGNIFICANTLY, THESE SHOULD NOT CHANGE)
 
 #fieldNames = {field name: attribute}
 fieldNames = {'grwasu': 'groundwatersupply', 'aqudiv': 'aquaticdiversity', 'riflmi_bv': 'riverinefpfloodmitigation_bv', 'suwasu_bp': 'surfacewatersupply_bp', 'riflre': 'riverinelandscapefloodreduction', 'grwasu_bp': 'groundwatersupply_bp',
@@ -108,7 +133,7 @@ fieldNames = {'grwasu': 'groundwatersupply', 'aqudiv': 'aquaticdiversity', 'rifl
 'riflre_fn': 'riverinelandscapefloodreduction_fn', 'flofun': 'floodplainfunction', 'strres': 'streamresilience', 'terrec_bp': 'terrestrialrecreation_bp', 'terphyvar': 'terrestrialphysicalvariety', 'fraqre_fn': 'freshwateraquaticrecreation_fn',
 'tercon': 'terrestrialconnectivity'}
 
-#fieldReverse = {attribute: field name
+#fieldReverse = {attribute: field name}
 fieldReverse = {'terrestrialrecreation_fn': 'terrec_fn', 'streamresilience': 'strres', 'marinenpsreduction': 'marnpsred', 'flooddamageprevention_bp': 'fldapr_bp', 'riverinelandscapefloodreduction_fn': 'riflre_fn', 'presenttidalwetlands': 'pretidwet',
 'flooddamageprevention_fn': 'fldapr_fn', 'surfacewatersupply_fn': 'suwasu_fn', 'marineaquaticrecreation_bp': 'maaqre_bp', 'terrestrialrecreation_bv': 'terrec_bv', 'aquaticdiversity': 'aqudiv', 'terrestrialrecreation_bp': 'terrec_bp',
 'terrestrialclimateflow': 'tercliflo', 'marineaquaticrecreation_bv': 'maaqre_bv', 'heatmitigation': 'heamit', 'groundwatersupply_fn': 'grwasu_fn', 'marinenprevention': 'marnpre', 'riverinefpfloodmitigation_bv': 'riflmi_bv', 'riverinefpfloodmitigation_bp': 'riflmi_bp',
@@ -140,6 +165,12 @@ classDict = {'aquaticdiversity': ['Freshwater','Diversity'],'streamphysicalvarie
 'freshwateraquaticrecreation': ['People','Recreation'],'terrestrialrecreation': ['People','Recreation'],'marinestormsurgemitigation': ['People','Flooding'],'flooddamageprevention': ['People','Flooding'],'riverinelandscapefloodreduction': ['People','Flooding'],
 'riverinefpfloodmitigation': ['People','Flooding'],'landuseintensificationrisk': ['Threat','Threat']}
 
+#list of field names for creating summary method lists of intersection results
+atts = [u'flofun', u'freflo', u'frenpsmit', u'frenpspre', u'ripfun', u'aqudiv', u'strphyvar', u'flohab', u'wethab', u'strres', u'carseq', u'carsto', u'tercliflo', u'tercon', u'terhabqua', u'terphyvar', u'terres', u'marnpre', u'marnpsred', u'shodyn',
+u'futtidwet', u'pretidwet', u'fldapr', u'fldapr_fn', u'fldapr_bp', u'fldapr_bv', u'mastmi', u'mastmi_fn', u'mastmi_bp', u'mastmi_bv', u'riflmi', u'riflmi_fn', u'riflmi_bp', u'riflmi_bv', u'riflre', u'riflre_fn', u'riflre_bp', u'riflre_bv', u'fraqre',
+u'fraqre_fn', u'fraqre_bp', u'fraqre_bv', u'maaqre', u'maaqre_fn', u'maaqre_bp', u'maaqre_bv', u'terrec', u'terrec_fn', u'terrec_bp', u'terrec_bv', u'heamit', u'heamit_fn', u'heamit_bp', u'heamit_bv', u'grwasu', u'grwasu_fn', u'grwasu_bp', u'suwasu',
+u'suwasu_fn', u'suwasu_bp', u'lanuseint', u'terdivwgt', u'terdivsos', u'habvarwgt', u'habvarsos']
+
 #tuple of land use/land cover class names
 lulcTuple = (u'Water', u'Open Space Developed', u'Low Intensity Developed', u'Medium Intensity Developed', u'High Intensity Developed', u'Undetermined Developed', u'Pasture/Hay',u'Cultivated Crops', u'Undetermined Agriculture', u'Central Oak-Pine',
 u'Undetermined Forest', u'Northern Hardwood-Conifer', u'Boreal Upland Forest', u'Ruderal Shrubland/Grassland', u'Undetermined Shrub/Grassland', u'Glade, Barren and Savanna', u'Large River Floodplain', u'Coastal Plain Swamp', u'Northern Swamp',
@@ -154,7 +185,7 @@ lulcClasses = {3200: u'Undetermined Developed', 3800: u'Undetermined Agriculture
 82: u'Cultivated Crops', 750: u'Coastal Plain Peat Swamp', 1400: u'Large River Floodplain'}
 
 ###############################################################################################################################################################################################################################################################
-#Reference data for writing results to excel spreadsheet and pdf report (unless attributes are added or removed from the tool, or outputs are changed significantly these should remain constant)
+#Reference data for writing results to excel spreadsheet and pdf report (UNLESS ATTRIBUTES ARE ADDED OR REMOVED FROM THE TOOL, OR OUTPUTS ARE CHANGED SIGNIFICANTLY, THESE SHOULD NOT CHANGE)
 
 #meanColDictionary = {attribute: column number for mean results in excel spreadsheet}
 meanColDictionary = {'riverinelandscapefloodreduction_bv': 43, 'terrestrialrecreation_fn': 53, 'streamresilience': 13, 'marinenpsreduction': 24, 'flooddamageprevention_bp': 30, 'surfacewatersupply_bv': 67, 'terrestrialphysicalvariety': 21,
@@ -217,7 +248,7 @@ u'Coastal Grassland/Shrubland': 32, u'Undetermined Agriculture': 11, u'Central H
 u'Tidal Swamp': 36, u'Tidal Marsh': 37}
 
 ###############################################################################################################################################################################################################################################################
-#Reference information about data status and condition (likely to change more frequently than reference data in above sections)
+#Reference information about data status and condition (LIKELY TO CHANGE MORE FREQUETLY THAN REFERENCE DATA IN ABOVE SECTIONS)
 
 #list of limited scope attributes
 scopeList = [u'riparianfunction', u'streamresilience', u'streamphysicalvariety', u'floodplainfunction', u'floodplainhabitat', u'wetlandhabitat', u'carbonstorage', u'terrestrialresilience', u'terrestrialclimateflow', u'terrestrialconnectivity',
@@ -229,7 +260,7 @@ u'marineaquaticrecreation_fn', u'marinestormsurgemitigation_bp', u'marinestormsu
 devList = ['riverinelandscapefloodreduction','riverinelandscapefloodreduction_fn','riverinelandscapefloodreduction_bp','riverinelandscapefloodreduction_bv','carbonsequestration', 'terrestrialclimateflow']
 
 ###############################################################################################################################################################################################################################################################
-#Reference information for calculating attribute effectiveness scores (MUST BE UPDATED ANYTIME A SENSITIVITY GRID CHANGES using script:
+#Reference information for calculating attribute effectiveness scores (MUST BE UPDATED ANYTIME A SENSITIVITY GRID CHANGES USING THE FOLLOWING SCRIPT:
 #D:\gisdata\Projects\Regional\ConservationDimensions\ZonalStatsTool\ZonalStatsTool_workingfiles\CalculatingScalars_Sums_030119.py)
 
 #scalarDict = {attribute: scalar for calculating effectiveness scores (observed maximums for 1,000 acre neighborhood sums)}
@@ -257,7 +288,7 @@ if arcpy.Describe(projects).spatialReference.name == 'Unknown':
     sys.exit(0)
 
 ##try:
-#Dissolve the input shapes on the projIDField field, and reproject the input shapes to use Albers Equal Area Conic coordinate system (same as 2011 NLCD grid)
+#Dissolve the input shapes on the projIDField field, and reproject the input shapes to use NAD_1983_Contiguous_USA_Albers coordinate system (standard for SAT)
 projDiss = arcpy.Dissolve_management(projects, "in_memory\\projectsdiss", projIDField, [[projNameField, 'FIRST']])
 
 projWork = arcpy.Project_management(projDiss, scratch + "\\" + str(queName) + "_" + str(runStamp) + "_allprojects", coorSystem)
@@ -276,7 +307,7 @@ else:
 projDict = dict() #projDict = {projID: [projName, outRow, vector hectares, raster hectares, number cells] ...}
 projResults = dict() #projResults = {projID: {attribute: [mean sensitivity, efficiency, effectiveness, efficiency*effectiveness], attribute: [mean sensitivity, efficiency, effectiveness, efficiency*effectiveness] ...} ...}
 lulcResults = dict() #lulcResults = {projID: {lulcclass: percent, lulcclass: percent ...} ...}
-divwgtResults = dict() #divwgtResults = {projID: [mean terr div weight, mean hab var weight] ...}
+divwgtResults = dict() #divwgtResults = {projID: [mean terrestrial diversity weight, mean habitat variety weight] ...}
 
 #Create lists for storing size flagged projects (don't meet the minimum or maximum size thresholds)
 smallList = list()
@@ -350,7 +381,6 @@ arcpy.AddMessage("Importing reference data, please wait ...")
 
 try:
     #open standardized percentile master workbook for SAT attributes as inBook
-    pctTable = "D:\\gisdata\\Projects\\Regional\\ConservationDimensions\\ZonalStatsTool\\PercentileTables\\PercentileTables_MASTER.xls"
     inBook = xlrd.open_workbook(pctTable)
     #Get list of sheet names in inBook
     sheetNames = inBook.sheet_names()
@@ -375,9 +405,6 @@ try:
     sizeList = [x for x in bookDict['aquaticdiversity'] if x[0] == "Sens"][0]
     lgstSize = max(sizeList)
     smstSize = min(sizeList)
-
-    #get path to spp presence/absence csv table for use in terrestrial diversity calculations
-    sppData = r"D:\gisdata\Projects\Regional\ConservationDimensions\ZonalStatsTool\PercentileTables\hyperspp_vals.csv"
 
     #create new empty list for storing spp presence/absence data read from the csv table
     sppList = list()
@@ -405,8 +432,6 @@ print "Finding project polygon extents ..."
 arcpy.AddMessage("Finding project polygon extents ...")
 try:
     #Identify which input point datasets need to be used in the intersections by running an intersection with the 30k grid polygon features
-    grid30K = "D:\\gisdata\\Personal\\sthol\\SATQueryTool\\SATQueryToolTests.gdb\\SAT_30K_GRID"
-
     #Specify path for saving the grid intersect results
     gridInt = scratch + "\\" + str(queName) + "_" + str(runStamp) + "_gridintersect"
 
@@ -433,15 +458,6 @@ except Exception:
     sys.exit(0)
 
 ##############################################################################################################################################################################################################################################################
-#Specify directory of sensitivity points for use in calculating intersection
-ptsGdb = "D:\\gisdata\\Personal\\sthol\\SATQueryTool\\SAT_30K_GRID_PTS.gdb"
-
-#specify field names for creating summary method lists
-atts = [u'flofun', u'freflo', u'frenpsmit', u'frenpspre', u'ripfun', u'aqudiv', u'strphyvar', u'flohab', u'wethab', u'strres', u'carseq', u'carsto', u'tercliflo', u'tercon', u'terhabqua', u'terphyvar', u'terres', u'marnpre', u'marnpsred', u'shodyn',
-u'futtidwet', u'pretidwet', u'fldapr', u'fldapr_fn', u'fldapr_bp', u'fldapr_bv', u'mastmi', u'mastmi_fn', u'mastmi_bp', u'mastmi_bv', u'riflmi', u'riflmi_fn', u'riflmi_bp', u'riflmi_bv', u'riflre', u'riflre_fn', u'riflre_bp', u'riflre_bv', u'fraqre',
-u'fraqre_fn', u'fraqre_bp', u'fraqre_bv', u'maaqre', u'maaqre_fn', u'maaqre_bp', u'maaqre_bv', u'terrec', u'terrec_fn', u'terrec_bp', u'terrec_bv', u'heamit', u'heamit_fn', u'heamit_bp', u'heamit_bv', u'grwasu', u'grwasu_fn', u'grwasu_bp', u'suwasu',
-u'suwasu_fn', u'suwasu_bp', u'lanuseint', u'terdivwgt', u'terdivsos', u'habvarwgt', u'habvarsos']
-
 #create new empty list for storing effectiveness results for all attributes and all projects (for determining the scale of the scatter plot x-axes)
 effectScores = list()
 
@@ -489,7 +505,7 @@ finalMeans = scratch + "\\" + str(queName) + "_" + str(runStamp) + "_intersectme
 toDelete.append(finalMeans)
 arcpy.Statistics_analysis(intersect, finalMeans, [[a,'MEAN'] for a in atts if a not in [u'terdivsos', u'habvarsos']], projIDField)
 
-#Calculate attribute sums by supplied projID, , excluding the terrestrial diversity and habitat variety weights, and all people attribute components
+#Calculate attribute sums by supplied projID, excluding the terrestrial diversity and habitat variety weights, and all people attribute components
 finalSums = scratch + "\\" + str(queName) + "_" + str(runStamp) + "_intersectsums_FINAL"
 toDelete.append(finalSums)
 arcpy.Statistics_analysis(intersect, finalSums, [[a,'SUM'] for a in atts if a not in [u'terdivwgt', u'habvarwgt'] and a[-3:] not in ['_fn','_bp','_bv']], projIDField)
@@ -500,20 +516,20 @@ toDelete.append(finalCounts)
 arcpy.Statistics_analysis(intersect, finalCounts, [['POINTID','COUNT']], [projIDField,'satlulc'])
 
 #Retrieve stats from the finalMeans table and add estimate of raster hectares to projDict (raster hectares = (number points in intersection*900)/10000)#projDict = {projID: [projName, outRow, vectorhectares, rasterhectares, number cells]}
-#and project scores to projResults #projResults = {projID: {attname: [meansens, efficiency, effectiveness, efficiency*effectiveness], attname: [meansens, efficiency, effectiveness, efficiency*effectiveness] ...} ...}
+#and add project means and efficiency scores to projResults #projResults = {projID: {attname: [meansens, efficiency, effectiveness, efficiency*effectiveness], attname: [meansens, efficiency, effectiveness, efficiency*effectiveness] ...} ...}
 print "Calculating mean sensitivities and efficiency scores ..."
 arcpy.AddMessage("Calculating mean sensitivities and efficiency scores ...")
 #get list of field names in the finalMeans results to use below
 meanFields = [f.name for f in arcpy.ListFields(finalMeans) if f.name != 'OBJECTID']
 with arcpy.da.SearchCursor(finalMeans, meanFields) as cursor:
     for row in cursor:
-        #get current project id and project raster size in hectares as (intersect frequency * 900)/10000
+        #get current project id and project raster size in hectares as (number of points in intersection * 900)/10000
         projID = row[0] #projID is stored in first field (position 0)
         projSize = round((float(row[1])*900.0)/10000.0,2) #number of points in intersection is stored in second field (position 1)
 
         #add raster hectares and cell counts to projDict
         projDict[projID][3] = projSize
-        projDict[projID][4] = int(row[1])
+        projDict[projID][4] = int(row[1]) #number of points in intersection is stored in second field (position 1)
 
         #add water supply beneficiary vulnerability 'no data' entries to projResults dictionary (because we lack people vulnerability data for these two attributes)
         projResults[projID]['surfacewatersupply_bv'][0] = 'No Data'
@@ -526,13 +542,13 @@ with arcpy.da.SearchCursor(finalMeans, meanFields) as cursor:
             #get name of current field
             currField = meanFields[meanCounter].replace('MEAN_','')
 
-            #if current attribute is a diversity weight, proceed with writing the results to the diversity weight dictionary
+            #if current attribute is a diversity weight, proceed with writing the results to the diversity weight dictionary (have to handle differently because efficiency is not calculated until later)
             if currField == u'terdivwgt':
-                projAttMean = float(row[meanCounter])/1000000.0 #scalar because weight data had to be multiplied by 10^6 before summarizing to points to maintain equate level of precision
+                projAttMean = float(row[meanCounter])/1000000.0 #scalar because weight data had to be multiplied by 10^6 before summarizing to points to maintain adequate level of precision
                 divwgtResults[projID][0] = projAttMean #divwgtResults = {projID: [terrdivwgt, habvarwgt], projID: [terrdivwgt, habvarwgt] ...}
 
             elif currField == u'habvarwgt':
-                projAttMean = float(row[meanCounter])/100.0 #scalar because weight data had to be multiplied by 10^2 before summarizing to points to maintain equate level of precision
+                projAttMean = float(row[meanCounter])/100.0 #scalar because weight data had to be multiplied by 10^2 before summarizing to points to maintain adequate level of precision
                 divwgtResults[projID][1] = projAttMean #divwgtResults = {projID: [terrdivwgt, habvarwgt], projID: [terrdivwgt, habvarwgt] ...}
 
             #test whether currAtt is under development
@@ -544,7 +560,7 @@ with arcpy.da.SearchCursor(finalMeans, meanFields) as cursor:
                 else:
                     projResults[projID][fieldNames[currField]] = ['Under development']*4
 
-            #if current value NOT a diversity weight but IS a nonetype (no value), proceed with writing "Under development and "Null" as appropriate
+            #if current value is NOT a diversity weight but IS a nonetype (no value, which indicates out of scope), proceed with writing "Under development and "Null" as appropriate
             elif row[meanCounter] is None:
 
                 #test whether currAtt is under development
@@ -567,7 +583,7 @@ with arcpy.da.SearchCursor(finalMeans, meanFields) as cursor:
                         projResults[projID][fieldNames[currField]][1] = 'Null'
 
 
-            #if current value is NOT a nonetype, but IS a people component proceed with writing just mean result to the results dictionary (efficiency and effectiveness are calculate for sensitivity grids only, not people components)
+            #if current value is NOT a nonetype, but IS a people component proceed with writing just mean result to the results dictionary (efficiency and effectiveness are calculated for sensitivity grids only, not people components)
             elif fieldNames[currField][-3:] in ['_fn', '_bp', '_bv']:
                 projAttMean = round(float(row[meanCounter])/100.0,2)
                 projResults[projID][fieldNames[currField]] = [projAttMean]
@@ -615,7 +631,8 @@ with arcpy.da.SearchCursor(finalMeans, meanFields) as cursor:
             #advance meanCounter by 1
             meanCounter += 1
 
-#Retrieve stats from the finalSums table and add effectiveness scores to projResults #projResults = dict() #projResults = {projID: {attname: [meansens, efficiency, effectiveness, efficiency*effectiveness], attname: [meansens, efficiency, effectiveness, efficiency*effectiveness] ...} ...}
+#########################################################################################################################################################################################################################################
+#Retrieve stats from the finalSums table and add effectiveness scores to projResults #projResults = {projID: {attname: [meansens, efficiency, effectiveness, efficiency*effectiveness], attname: [meansens, efficiency, effectiveness, efficiency*effectiveness] ...} ...}
 print "Calculating effectiveness scores ..."
 arcpy.AddMessage("Calculating effectiveness scores ...")
 #get list of field names in the finalSums results to use below
@@ -631,7 +648,7 @@ with arcpy.da.SearchCursor (finalSums, sumFields) as cursor:
             #get name of current field
             currField = sumFields[sumCounter].replace('SUM_','')
 
-            #if current sum is for the habitat variety effectiveness score, retrieve scalar and calculate current effectiveness score (have to handle differently because efficiency is not calculated until later)
+            #if current sum is for the habitat variety effectiveness score, retrieve scalar and calculate current effectiveness score (have to handle differently because efficiency is not calculated until later, so can't calculate efficiency*effectiveness yet)
             if currField == 'habvarsos':
                 #retrieve scalar for terrestrial habitat variety and calculate effectiveness score
                 currScalar = scalarDict['terrestrialhabitatvariety']
@@ -644,7 +661,7 @@ with arcpy.da.SearchCursor (finalSums, sumFields) as cursor:
                 #write effectiveness score for current project to results dictionary
                 projResults[projID]['terrestrialhabitatvariety'][2] = currEffect
 
-            #if current sum is for the terrestrial diversity effectiveness score, retrieve scalar and calculate current effectiveness score (have to handle differently because efficiency is not calculated until later)
+            #if current sum is for the terrestrial diversity effectiveness score, retrieve scalar and calculate current effectiveness score (have to handle differently because efficiency is not calculated until later, so can't calculate efficiency*effectiveness yet)
             elif currField == 'terdivsos':
                 #retrieve scalar for terrestrial diversity and calculate effectiveness score
                 currScalar = scalarDict['terrestrialdiversity']
@@ -657,11 +674,11 @@ with arcpy.da.SearchCursor (finalSums, sumFields) as cursor:
                 #write effectiveness score for current project to results dictionary
                 projResults[projID]['terrestrialdiversity'][2] = currEffect
 
-            #if current sum is for an attribute under development, pass
+            #if current sum is for an attribute under development, pass ("Under development" has already been written to the projResults dictionary)
             elif fieldNames[currField] in devList:
                 pass
 
-            #if current value is nonetype (non value), write 0s in the effectiveness and efficiency*effectivness scores
+            #if current value is nonetype (no value, which indicates out of scope), write 0s in the effectiveness and efficiency*effectivness scores
             elif row[sumCounter] is None:
                 projResults[projID][fieldNames[currField]][2] = 0
                 projResults[projID][fieldNames[currField]][3] = 0
@@ -708,7 +725,7 @@ for spp in [u'spp1', u'spp2', u'spp3', u'spp4', u'spp5']:
     arcpy.Statistics_analysis(intersect, finalSppCounts, [['POINTID','COUNT']], [projIDField,spp])
 
     #define field names for search cursor
-    sppFields =[projIDField, spp, 'COUNT_POINTID']
+    sppFields = [projIDField, spp, 'COUNT_POINTID']
 
     #iterate through rows in the final spp counts table, retreive the results and write to the sppDict
     with arcpy.da.SearchCursor(finalSppCounts, sppFields) as cursor:
@@ -749,7 +766,7 @@ for projID in sppDict:
     #iterate through values getting current index position, current count, and current spp from array; calculate number of pixels as product of current spp array and current count
     for val in values:
         currPosition = values.index(val)
-        overallPosition = sppList.index(val)  #NOTE: legacy from other approach tried for faster import of spp data (only import rows for spp that are represented in the current projects) that I couldn't get ot work
+        ##overallPosition = sppList.index(val)  #NOTE: this line is a legacy from other approach tried for faster import of spp data (only import rows for spp that are represented in the current projects) that I couldn't get to work, but we may want to revisit
         currCount = int(valCounts[currPosition])
         currSpp = sppArray[val]
         numPixels = np.resize(np.array(currCount*currSpp),(1,441))
@@ -818,7 +835,7 @@ for projID in sppDict:
 print "Calculating values for terrestrial habitat variety ..."
 arcpy.AddMessage("Calculating values for terrestrial habitat variety ...")
 
-#Get lists for current attribute from bookDict
+#Get percentile rank reference lists for terrestrial habitat variety attribute from bookDict
 attList = bookDict['terrestrialhabitatvariety']
 
 #Calculate habitat counts by project
@@ -837,7 +854,7 @@ with arcpy.da.SearchCursor(finalHabCounts, habFields) as cursor:
     for row in cursor:
         projID = row[0]
 
-        #if current project ID is already in the habDict, retrieve the list of values, append new data, and write results back to habDict (NOTE: this check is probably not needed - carried over from spp count process)
+        #if current project ID is already in the habDict, retrieve the list of values, append new data, and write results back to habDict (NOTE: this check is probably not needed - carried over from spp count process, which I used as the basis for this code)
         if projID in habDict:
             currVals = habDict[projID]
             currVals.append([row[1],row[2]])
@@ -913,7 +930,7 @@ for projID in habDict:
     projResults[projID]['terrestrialhabitatvariety'][3] = round(currPct*currEffect,2)
 
 ##################################################################################################################################################################################################################
-#Retrieve stats from the finalCounts table and add to the lulcResults dictionary  #lulcResults =  {projID: {lulcclass: percent, lulcclass: percent ...} ...}
+#Retrieve lulc stats from the finalCounts table and add to the lulcResults dictionary  #lulcResults =  {projID: {lulcclass: percent, lulcclass: percent ...} ...}
 print "Calculating land use/land cover percentages in projects extents ..."
 
 #get path of final lulc counts table
@@ -922,7 +939,7 @@ finalCounts = scratch + "\\" + str(queName) + "_" + str(runStamp) + "_intersectc
 #define field names for search cursor
 countFields =[projIDField, 'satlulc', 'COUNT_POINTID']
 
-#iterate through rows in lulc counts table retrieving lulc class and number of cells, and writing to lulcResults dictionary
+#iterate through rows in finalCounts table retrieving lulc class and number of cells, and writing to lulcResults dictionary
 with arcpy.da.SearchCursor(finalCounts, countFields) as cursor:
     for row in cursor:
         projID = row[0]
@@ -1224,11 +1241,11 @@ for scatterItem in scatterList:
     scattersheet.write(scatterItem[0],scatterItem[1],scatterItem[2],scatterItem[3])
 
 #add legend shape images to scattersheet
-scattersheet.insert_image(2,0,r"D:\gisdata\Projects\Regional\ConservationDimensions\ZonalStatsTool\PercentileTables\circle.png",{'x_scale':0.7,'y_scale':0.7,'x_offset':20, 'y_offset':4})
-scattersheet.insert_image(3,0,r"D:\gisdata\Projects\Regional\ConservationDimensions\ZonalStatsTool\PercentileTables\square.png",{'x_scale':0.7,'y_scale':0.7,'x_offset':20, 'y_offset':4})
-scattersheet.insert_image(4,0,r"D:\gisdata\Projects\Regional\ConservationDimensions\ZonalStatsTool\PercentileTables\triangle.png",{'x_scale':0.7,'y_scale':0.7,'x_offset':20, 'y_offset':4})
-scattersheet.insert_image(5,0,r"D:\gisdata\Projects\Regional\ConservationDimensions\ZonalStatsTool\PercentileTables\diamond.png",{'x_scale':0.7,'y_scale':0.7,'x_offset':19, 'y_offset':3})
-scattersheet.insert_image(6,0,r"D:\gisdata\Projects\Regional\ConservationDimensions\ZonalStatsTool\PercentileTables\star.png",{'x_scale':0.7,'y_scale':0.7,'x_offset':20, 'y_offset':4})
+scattersheet.insert_image(2,0,circle,{'x_scale':0.7,'y_scale':0.7,'x_offset':20, 'y_offset':4})
+scattersheet.insert_image(3,0,square,{'x_scale':0.7,'y_scale':0.7,'x_offset':20, 'y_offset':4})
+scattersheet.insert_image(4,0,triangle,{'x_scale':0.7,'y_scale':0.7,'x_offset':20, 'y_offset':4})
+scattersheet.insert_image(5,0,diamond,{'x_scale':0.7,'y_scale':0.7,'x_offset':19, 'y_offset':3})
+scattersheet.insert_image(6,0,star,{'x_scale':0.7,'y_scale':0.7,'x_offset':20, 'y_offset':4})
 
 #set scattersheet column widths
 scattersheet.set_column(0,0,15)
@@ -1485,13 +1502,12 @@ if numProj > 23:
 
 
 
-#if the query is not a batch of more than 23 projects, proceed with iterating through all projects in project dictionary
+#if the query is NOT a batch of more than 23 projects, proceed with iterating through all projects in project dictionary, writing to scatter and radar plot tables, and graphing
 elif numProj <= 23:
-    #iterate through projects in projResults dictionary for writing to scatter and radar plot tables, and graphing
     for proj in projResults:
         projText = "Project " + str(proj)
 
-        #retrieve results for current top proj
+        #retrieve results for current proj
         projAtts = projResults[proj]
 
         #retrieve color for current project
@@ -1620,7 +1636,7 @@ elif numProj <= 23:
 
         p+=1
 
-#get the maximum share of state score for determining x axis maximum for the scatter plots
+#get the maximum effectiveness score (legacy name = share of state score) for determining x axis maximum for the scatter plots
 shareMax = max(effectScores)
 
 fwscatter.set_x_axis({'min':0.0,'max':shareMax,'name': "project effectiveness score", 'name_font': {'size': 10}, 'num_font': {'size': 9}})
@@ -1986,12 +2002,10 @@ for item in toDelete:
         arcpy.AddMessage("Couldn't delete intermediate dataset in default geodatabase " + scratch + "; please clean up manually!")
 
 #create copy of project shapes and results for the query tool archive
-shapeArchive = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_QueryToolArchive\\ShapeArchive.gdb"
-resultsArchive = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_QueryToolArchive\\ResultsArchive"
 arcpy.CopyFeatures_management(projects,shapeArchive+"\\SATQuery_"+str(queName)+"_"+str(runStamp))
 shutil.copy(outDir + "\\SATResults_" + str(queName) + "_" + str(runStamp) + ".xlsx", resultsArchive+"\\SATResults_"+str(queName)+"_"+str(runStamp)+".xlsx")
 
-#print status and caution message, if applicable
+#print status and caution messages, if applicable
 print "All done!  Check results in " + outDir
 arcpy.AddMessage("All done! Check results in " + outDir)
 
@@ -2005,3 +2019,5 @@ if len(smallList) > 0:
 
 elapsed = round((time.time() - start)/60.0,2)
 print "took " + str(elapsed) + " minutes for " + str(len(projDict)) + " projects"
+
+
