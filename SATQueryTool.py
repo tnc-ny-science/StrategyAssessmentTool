@@ -21,9 +21,7 @@ from win32com import client
 import xlsxwriter, os, csv, time, datetime, xlrd
 import numpy as np
 from arcpy import env
-from arcpy.sa import *
 arcpy.env.overwriteOutput = True
-arcpy.CheckOutExtension("Spatial")
 
 start = time.time()
 
