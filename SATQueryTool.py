@@ -251,7 +251,7 @@ u'Tidal Swamp': 36, u'Tidal Marsh': 37}
 #list of limited scope attributes
 scopeList = [u'riparianfunction', u'streamresilience', u'streamphysicalvariety', u'floodplainfunction', u'floodplainhabitat', u'wetlandhabitat', u'carbonstorage', u'terrestrialresilience', u'terrestrialclimateflow', u'terrestrialconnectivity',
 u'futuretidalwetlands', u'marinenprevention', u'presenttidalwetlands', u'shorelinedynamics', u'groundwatersupply', u'surfacewatersupply', u'freshwateraquaticrecreation', u'marineaquaticrecreation', u'flooddamageprevention', u'flooddamageprevention_fn',
-u'marinestormsurgemitigation_fn', u'marinestormsurgemitigation', u'heatmitigation', u'riverinefpfloodmitigation', u'flooddamageprevention_bp', u'flooddamageprevention_bv', u'marineaquaticrecreation_bp', u'marineaquaticrecreation_bv',
+u'marinestormsurgemitigation_fn', u'marinestormsurgemitigation', u'heatmitigation', u'riverinefpfloodmitigation', u'riverinefpfloodmitigation_fn', u'riverinefpfloodmitigation_bp', u'riverinefpfloodmitigation_bv', u'flooddamageprevention_bp', u'flooddamageprevention_bv', u'marineaquaticrecreation_bp', u'marineaquaticrecreation_bv',
 u'marineaquaticrecreation_fn', u'marinestormsurgemitigation_bp', u'marinestormsurgemitigation_bv']
 
 #list of data that is under development
