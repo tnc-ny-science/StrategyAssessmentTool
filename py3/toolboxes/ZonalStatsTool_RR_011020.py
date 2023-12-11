@@ -2,6 +2,7 @@
 # Name:        SAT Query Tool - Roadrunner version
 # Purpose:     Calculates SAT efficiency and effectiveness scores for proposed project areas and writes to results spreadsheet
 #               (with optional output as pdf report and spatial data)
+#              Modified 12/2023 to run with python 3 runtime and ArcGIS Pro arcpy module
 #
 # Author:      shannon.thol
 #
@@ -12,7 +13,7 @@
 
 #Load packages, etc.
 import arcpy
-print "Loading packages ..."
+print("Loading packages ...")
 arcpy.AddMessage("Loading packages ...")
 
 import shutil, re, sys
@@ -38,7 +39,7 @@ fooTime = time.strftime("%b %d, %Y %I:%M %p", time.localtime()) #Mon Day, Year H
 runStamp = user + "_" + str(currTime[0]) + str(currTime[1]) + str(currTime [2]) + "_" + str(currTime[3]) + str(currTime[4]) #name_yyyymmdd_hhmm
 
 #Set cell size environment, snapping environment, coordinate system as consistent with the 2011 NLCD grid
-print "Setting environment parameters and locating reference data ..."
+print("Setting environment parameters and locating reference data ...")
 arcpy.AddMessage("Setting environment parameters ...")
 coorSystem = arcpy.SpatialReference(5070) #5070 = WKID code for NAD_1983_Contiguous_USA_Albers
 
@@ -287,18 +288,18 @@ u'futuretidalwetlands': 71602.0, u'carbonstorage': 71535.31, u'surfacewatersuppl
 
 ###############################################################################################################################################################################################################################################################
 #Prepare proposed project shapes and attributes
-print "Preparing vector data ..."
+print("Preparing vector data ...")
 arcpy.AddMessage("Preparing vector data ...")
 
 #Test to see if input project shapes are a polygon feature class, if not, print error message and terminate the script
 if arcpy.Describe(projects).shapeType != 'Polygon':
-    print "FAILED FEATURE CLASS TYPE CHECK: You submitted a " + arcpy.Describe(projects).shapeType + " feature class, terminating analysis ... Please try again using a polygon feature class."
+    print("FAILED FEATURE CLASS TYPE CHECK: You submitted a " + arcpy.Describe(projects).shapeType + " feature class, terminating analysis ... Please try again using a polygon feature class.")
     arcpy.AddMessage("FAILED FEATURE CLASS TYPE CHECK: You submitted a " + arcpy.Describe(projects).shapeType + " feature class, terminating analysis ... Please try again using a polygon feature class.")
     sys.exit(0)
 
 #Test to see if input project shapes have a spatial reference defined, if not, print error message and terminate the script
 if arcpy.Describe(projects).spatialReference.name == 'Unknown':
-    print "FAILED SPATIAL REFERENCE CHECK: Project feature class does not have a spatial reference defined, terminating analysis ... Please fix the problem and try again."
+    print("FAILED SPATIAL REFERENCE CHECK: Project feature class does not have a spatial reference defined, terminating analysis ... Please fix the problem and try again.")
     arcpy.AddMessage("FAILED SPATIAL REFERENCE CHECK: Project feature class does not have a spatial reference defined, terminating analysis ... Please fix the problem and try again.")
     sys.exit(0)
 
@@ -331,7 +332,7 @@ bigList = list()
 
 #Set counter for storing project row position (outRow) for writing results to excel spreadsheet
 outRow = 3
-print "Checking project polygons ..."
+print("Checking project polygons ...")
 arcpy.AddMessage("Checking project polygons ...")
 
 #Iterate through the projects in the dissolved project feature class and retrieve the IDs and vector area in hectares
@@ -339,12 +340,12 @@ with arcpy.da.UpdateCursor(projWork,[projIDField,'FIRST_' + str(projNameField),"
     for row in cursor:
         #check project size and add items to small or big list as appropriate
         if row[2] < 1:
-            print "   FAILED CHECKS: Project " + str(row[0]) + " is smaller than the MINIMUM size threshold (1 Ha) and will not be analyzed ..."
+            print("   FAILED CHECKS: Project " + str(row[0]) + " is smaller than the MINIMUM size threshold (1 Ha) and will not be analyzed ...")
             arcpy.AddMessage("   FAILED CHECKS: Project " + str(row[0]) + " is smaller than the MINIMUM size threshold (1 Ha) and will not be analyzed ...")
             cursor.deleteRow()
             smallList.append([row[0], row[1]])
         elif row[2] > 24600:
-            print "   FAILED CHECK: Project " + str(row[0]) + " is larger than the MAXIMUM size threshold (24,600 Ha) and will not be analyzed ..."
+            print("   FAILED CHECK: Project " + str(row[0]) + " is larger than the MAXIMUM size threshold (24,600 Ha) and will not be analyzed ...")
             arcpy.AddMessage("   FAILED CHECK: Project " + str(row[0]) + " is larger than the MAXIMUM size threshold (24,600 Ha) and will not be analyzed ...")
             cursor.deleteRow()
             bigList.append([row[0], row[1]])
@@ -383,14 +384,14 @@ with arcpy.da.UpdateCursor(projWork,[projIDField,'FIRST_' + str(projNameField),"
 
 #check number of features remaining in projWork, if no features remain after removing too big and too small projects, terminate analysis
 if int(arcpy.GetCount_management(projWork)[0]) == 0:
-    print "   FAILED CHECKS: No projects met the size requirements, terminating analysis ..."
+    print("   FAILED CHECKS: No projects met the size requirements, terminating analysis ...")
     arcpy.AddMessage("   FAILED CHECKS: No projects met the size requirements, terminating analysis ...")
     arcpy.Delete_management(projWork)
     sys.exit(0)
 
 ##except Exception:
 ##    arcpy.Delete_management(projWork)
-##    print "There was a problem preparing the vector data, please check the data and try again ..."
+##    print("There was a problem preparing the vector data, please check the data and try again ...")
 ##    arcpy.AddMessage("There was a problem preparing the vector data, please check the data and try again ...")
 ##    e = sys.exc_info()[1]
 ##    print(e.args[0])
@@ -399,7 +400,7 @@ if int(arcpy.GetCount_management(projWork)[0]) == 0:
 
 #############################################################################################################################################################################################################################################################
 #Create dictionary of standardized percentiles for all attributes
-print "Importing reference data, please wait ..."
+print("Importing reference data, please wait ...")
 arcpy.AddMessage("Importing reference data, please wait ...")
 
 try:
@@ -442,7 +443,7 @@ try:
 
 except Exception:
     arcpy.Delete_management(projWork)
-    print "There was a problem importing the reference data, please try again ..."
+    print("There was a problem importing the reference data, please try again ...")
     arcpy.AddMessage("There was a problem importing the reference data, please try again ...")
     e = sys.exc_info()[1]
     print(e.args[0])
@@ -451,7 +452,7 @@ except Exception:
 
 ##########################################################################################################################################################################################################################################################
 #Begin analysis to summarize SAT data in project extents and calculate efficiency and effectiveness scores
-print "Finding project polygon extents ..."
+print("Finding project polygon extents ...")
 arcpy.AddMessage("Finding project polygon extents ...")
 try:
     #Identify which input point datasets need to be used in the intersections by running an intersection with the 30k grid polygon features
@@ -473,7 +474,7 @@ try:
     gridList = list(set(intList))
 
 except Exception:
-    print "There was a problem getting the vector data extent, please try again ..."
+    print("There was a problem getting the vector data extent, please try again ...")
     arcpy.AddMessage("There was a problem getting the vector data extent, please try again ...")
     e = sys.exc_info()[1]
     print(e.args[0])
@@ -487,7 +488,7 @@ effectScores = list()
 ##try:
 #Calculate intersections between project polygons and appropriate SAT point grid(s) and retrieve project stats
 #If gridList has more than one item in it, iterate through grids in gridList calculating intersection with each appropriate point grid
-print "Computing spatial intersection ..."
+print("Computing spatial intersection ...")
 arcpy.AddMessage("Computing spatial intersection ...")
 if len(gridList) > 1:
     #Define mergeList for storing paths of individual intersection results that need to get merged
@@ -545,7 +546,7 @@ arcpy.Statistics_analysis(intersect, rcnCounts, [['POINTID', 'COUNT']], [projIDF
 
 #Retrieve stats from the finalMeans table and add estimate of raster hectares to projDict (raster hectares = (number points in intersection*900)/10000)#projDict = {projID: [projName, outRow, vectorhectares, rasterhectares, number cells]}
 #and add project means and efficiency scores to projResults #projResults = {projID: {attname: [meansens, efficiency, effectiveness, efficiency*effectiveness], attname: [meansens, efficiency, effectiveness, efficiency*effectiveness] ...} ...}
-print "Calculating mean sensitivities and efficiency scores ..."
+print("Calculating mean sensitivities and efficiency scores ...")
 arcpy.AddMessage("Calculating mean sensitivities and efficiency scores ...")
 #get list of field names in the finalMeans results to use below
 meanFields = [f.name for f in arcpy.ListFields(finalMeans) if f.name != 'OBJECTID']
@@ -661,7 +662,7 @@ with arcpy.da.SearchCursor(finalMeans, meanFields) as cursor:
 
 #########################################################################################################################################################################################################################################
 #Retrieve stats from the finalSums table and add effectiveness scores to projResults #projResults = {projID: {attname: [meansens, efficiency, effectiveness, efficiency*effectiveness], attname: [meansens, efficiency, effectiveness, efficiency*effectiveness] ...} ...}
-print "Calculating effectiveness scores ..."
+print("Calculating effectiveness scores ...")
 arcpy.AddMessage("Calculating effectiveness scores ...")
 #get list of field names in the finalSums results to use below
 sumFields = [f.name for f in arcpy.ListFields(finalSums) if f.name != 'OBJECTID']
@@ -730,7 +731,7 @@ with arcpy.da.SearchCursor (finalSums, sumFields) as cursor:
             sumCounter += 1
 
 ##except Exception:
-##    print "There was a problem calculating scores, please try again ..."
+##    print("There was a problem calculating scores, please try again ...")
 ##    arcpy.AddMessage("There was a problem calculating scores, please try again ...")
 ##    e = sys.exc_info()[1]
 ##    print(e.args[0])
@@ -738,7 +739,7 @@ with arcpy.da.SearchCursor (finalSums, sumFields) as cursor:
 ##    sys.exit(0)
 ############################################################################################################################################################################################################################################################
 #Calculate scores for terrestrial diversity attribute
-print "Calculating scores for terrestrial diversity ..."
+print("Calculating scores for terrestrial diversity ...")
 arcpy.AddMessage("Calculating scores for terrestrial diversity ...")
 
 #create new empty sppDict dictionary #sppDict = projID: [[sppcode, count], [sppcode, count] ...]], projID: [[sppcode, count], [sppcode, count] ...]] ...}
@@ -860,7 +861,7 @@ for projID in sppDict:
 ##############################################################################################################################################################################################################################################
 #Calculate scores for terrestrial habitat variety
 
-print "Calculating values for terrestrial habitat variety ..."
+print("Calculating values for terrestrial habitat variety ...")
 arcpy.AddMessage("Calculating values for terrestrial habitat variety ...")
 
 #Get percentile rank reference lists for terrestrial habitat variety attribute from bookDict
@@ -959,7 +960,7 @@ for projID in habDict:
 
 ##################################################################################################################################################################################################################
 #Retrieve lulc stats from the finalCounts table and add to the lulcResults dictionary  #lulcResults =  {projID: {lulcclass: percent, lulcclass: percent ...} ...}
-print "Calculating land use/land cover percentages in project extents ..."
+print("Calculating land use/land cover percentages in project extents ...")
 arcpy.AddMessage("Calculating land use/land cover percentages in project extents ...")
 
 #get path of final lulc counts table
@@ -981,7 +982,7 @@ with arcpy.da.SearchCursor(finalCounts, countFields) as cursor:
 
 ##################################################################################################################################################################################################################
 #Retrieve rcn stats from the rcnCounts table and add to the rcnResults dictionary #rcnResults = {projID: {rcnclass: hectares, rcnclass: hectares ...} ...}
-print "Calculating resilient and connected network statistics in project extents ..."
+print("Calculating resilient and connected network statistics in project extents ...")
 arcpy.AddMessage("Calculating resilient and connected network statistics in project extents ...")
 
 #get path of final rcn counts table
@@ -1094,7 +1095,7 @@ else:
 
 ##################################################################################################################################################################################################################
 #Set up Excel spreadsheet for writing results
-print "Writing results to Excel spreadsheet ..."
+print("Writing results to Excel spreadsheet ...")
 arcpy.AddMessage("Writing results to Excel spreadsheet ...")
 
 #create new workbook with xlswriter
@@ -1806,7 +1807,7 @@ workbook.close()
 #############################################################################################################################################################################################################################
 #Write individual reports if desired
 if report == "true":
-    print "Writing data to reports ..."
+    print("Writing data to reports ...")
     arcpy.AddMessage("Writing data to reports ...")
 
     #create new workbook with xlswriter
@@ -2023,7 +2024,7 @@ if report == "true":
 
         #if printing excel as pdf fails, print warning message to check for report as excel file instead
         except:
-            print "NOTE: Couldn't save report as PDF. Check output directory for Excel file of the report instead."
+            print("NOTE: Couldn't save report as PDF. Check output directory for Excel file of the report instead.")
             arcpy.AddMessage("NOTE: Couldn't save report as PDF. Check output directory for Excel file of the report instead.")
 
 else:
@@ -2032,7 +2033,7 @@ else:
 ###########################################################################################################################################################################################
 #create maps if desired
 if maps == 'true':
-    print "Maps are currently in beta production and cannot be created automatically by the query tool.  See the 'SAT Guidance for Using Map Templates' document for help preparing maps using existing templates created for this purpose."
+    print("Maps are currently in beta production and cannot be created automatically by the query tool.  See the 'SAT Guidance for Using Map Templates' document for help preparing maps using existing templates created for this purpose.")
     arcpy.AddMessage("Maps are currently in beta production and cannot be created automatically by the query tool.  See the 'SAT Guidance for Using Map Templates' document for help preparing maps using existing templates created for this purpose.")
 else:
     pass
@@ -2040,7 +2041,7 @@ else:
 ############################################################################################################################################################################################
 #create spatial data if desired
 if spatial == 'true':
-    print "Saving spatial data ..."
+    print("Saving spatial data ...")
 
     spatialOrder = ("floodplainfunction","freshwaterprovision","freshwaternpsmitigation", "freshwaternpsprevention","riparianfunction", "aquaticdiversity", "streamphysicalvariety", "floodplainhabitat", "wetlandhabitat",
     "streamresilience","carbonsequestration", "carbonstorage","terrestrialclimateflow", "terrestrialconnectivity", "terrestrialhabitatquality", "terrestrialdiversity", "terrestrialhabitatvariety", "terrestrialphysicalvariety",
@@ -2162,7 +2163,7 @@ for item in toDelete:
     try:
         arcpy.Delete_management(item)
     except:
-        print "Couldn't delete intermediate dataset in default geodatabase " + scratch + "; please clean up manually!"
+        print("Couldn't delete intermediate dataset in default geodatabase " + scratch + "; please clean up manually!")
         arcpy.AddMessage("Couldn't delete intermediate dataset in default geodatabase " + scratch + "; please clean up manually!")
 
 #create copy of project shapes and results for the query tool archive
@@ -2170,18 +2171,18 @@ arcpy.CopyFeatures_management(projects,shapeArchive+"\\SATQuery_"+str(queName)+"
 shutil.copy(outDir + "\\SATResults_" + str(queName) + "_" + str(runStamp) + ".xlsx", resultsArchive+"\\SATResults_"+str(queName)+"_"+str(runStamp)+".xlsx")
 
 #print status and caution messages, if applicable
-print "All done!  Check results in " + outDir
+print("All done!  Check results in " + outDir
 arcpy.AddMessage("All done! Check results in " + outDir)
 
 if len(bigList) > 0:
-    print "   REMINDER: Project(s) " + str(bigList) + " are larger than the MAXIMUM size threshold (24,600 Ha) and were not analyzed ..."
+    print("   REMINDER: Project(s) " + str(bigList) + " are larger than the MAXIMUM size threshold (24,600 Ha) and were not analyzed ...")
     arcpy.AddMessage("   REMINDER: Project(s) " + str(bigList) + " are larger than the MAXIMUM size threshold (24,600 Ha) and were not analyzed ...")
 
 if len(smallList) > 0:
-    print "   REMINDER: Project(s) " + str(smallList) + " are smaller than the MINIMUM size threshold (1 Ha) and were not analyzed ..."
+    print("   REMINDER: Project(s) " + str(smallList) + " are smaller than the MINIMUM size threshold (1 Ha) and were not analyzed ...")
     arcpy.AddMessage("   REMINDER: Project(s) " + str(smallList) + " are smaller than the MINIMUM size threshold (1 Ha) and were not analyzed ...")
 
 elapsed = round((time.time() - start)/60.0,2)
-print "took " + str(elapsed) + " minutes for " + str(len(projDict)) + " projects"
+print("took " + str(elapsed) + " minutes for " + str(len(projDict)) + " projects")
 arcpy.AddMessage("took " + str(elapsed) + " minutes for " + str(len(projDict)) + " projects")
 
