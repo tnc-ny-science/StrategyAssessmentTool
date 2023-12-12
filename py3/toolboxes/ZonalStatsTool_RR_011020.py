@@ -71,8 +71,8 @@ resultsArchive = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTR
 
 ############################################################################################################################################################################################################################################################
 #get project directory
-# projDir = arcpy.mp.ArcGISProject('CURRENT').homeFolder
-projDir = arcpy.mp.ArcGISProject('D:\GISData\Personal\mstryker\ArcPro\SAT_tester\SAT_tester.aprx').homeFolder
+projDir = arcpy.mp.ArcGISProject('CURRENT').homeFolder
+#projDir = arcpy.mp.ArcGISProject('D:\GISData\Personal\mstryker\ArcPro\SAT_tester\SAT_tester.aprx').homeFolder
 arcpy.AddMessage(f"Current project directory is {projDir}")
 
 #set path to default SAT workspace
@@ -99,41 +99,41 @@ toDelete = list()
 projects = r"D:\GISData\Personal\mstryker\ArcPro\SAT_tester\SAT_tester.gdb\rosendale_parcels"
 
 #Get query name from user input
-# queEntName = arcpy.GetParameterAsText(1)
-# arcpy.AddMessage(f"param 1: {arcpy.GetParameterAsText(1)}")
-queEntName = "rosendale_sat4"
+queEntName = arcpy.GetParameterAsText(1)
+arcpy.AddMessage(f"param 1: {arcpy.GetParameterAsText(1)}")
+#queEntName = "rosendale_sat4"
 queName = re.sub('\W+','',queEntName.lower())
 
 
 #Get name of unique numeric ID field (MUST BE INTEGER FIELD) from user input
-# projIDField = arcpy.GetParameterAsText(2)
-# arcpy.AddMessage(f"param 2: {arcpy.GetParameterAsText(2)}")
-projIDField = "SATID"
+projIDField = arcpy.GetParameterAsText(2)
+arcpy.AddMessage(f"param 2: {arcpy.GetParameterAsText(2)}")
+#projIDField = "SATID"
 
 #Get optional name of project "name" field from user input
-# projNameField = arcpy.GetParameterAsText(3)
-# arcpy.AddMessage(f"param 3: {arcpy.GetParameterAsText(3)}")
-projNameField = "project_name"
+projNameField = arcpy.GetParameterAsText(3)
+arcpy.AddMessage(f"param 3: {arcpy.GetParameterAsText(3)}")
+#projNameField = "project_name"
 
 #Get path for directory to write individual reports from user input
-# outDir = arcpy.GetParameterAsText(4)
-# arcpy.AddMessage(f"param 4: {arcpy.GetParameterAsText(4)}")
-outDir =  r"D:\GISData\Personal\mstryker\ArcPro\SAT_tester"
+outDir = arcpy.GetParameterAsText(4)
+arcpy.AddMessage(f"param 4: {arcpy.GetParameterAsText(4)}")
+#outDir =  r"D:\GISData\Personal\mstryker\ArcPro\SAT_tester"
 
 #Get user input on whether they want the results written in individual reports for projects
-# report = arcpy.GetParameterAsText(5)
-# arcpy.AddMessage(f"param 5: {arcpy.GetParameterAsText(5)}")
-report = "true"
+report = arcpy.GetParameterAsText(5)
+arcpy.AddMessage(f"param 5: {arcpy.GetParameterAsText(5)}")
+#report = "true"
 
 #Get user input on whether they want maps auto generated **Currently not operational!
-# maps = arcpy.GetParameterAsText(6)
-# arcpy.AddMessage(f"param 6: {arcpy.GetParameterAsText(6)}")
-maps = "true"
+maps = arcpy.GetParameterAsText(6)
+arcpy.AddMessage(f"param 6: {arcpy.GetParameterAsText(6)}")
+#maps = "true"
 
 #Get user input on whether they want the results in spatial format (dissolved feature class with attributes)
-# spatial = arcpy.GetParameterAsText(7)
-# arcpy.AddMessage(f"param 7: {arcpy.GetParameterAsText(7)}")
-spatial = "true"
+spatial = arcpy.GetParameterAsText(7)
+arcpy.AddMessage(f"param 7: {arcpy.GetParameterAsText(7)}")
+#spatial = "true"
 
 ############################################################################################################################################################################################################################################################
 #Derive path for output excel spreadsheet and pdf report based on user supplied output directory, query name, and name/time run stamp
