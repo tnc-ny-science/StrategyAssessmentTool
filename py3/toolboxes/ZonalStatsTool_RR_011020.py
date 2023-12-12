@@ -70,8 +70,14 @@ shapeArchive = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRIC
 resultsArchive = "D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_QueryToolArchive\\ResultsArchive"
 
 ############################################################################################################################################################################################################################################################
+#get project directory
+# projDir = arcpy.mp.ArcGISProject('CURRENT').homeFolder
+projDir = arcpy.mp.ArcGISProject('D:\GISData\Personal\mstryker\ArcPro\SAT_tester\SAT_tester.aprx').homeFolder
+arcpy.AddMessage(f"Current project directory is {projDir}")
+
 #set path to default SAT workspace
-scratch = 'E:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS\\SATworkspace.gdb'
+#scratch = 'E:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS\\SATworkspace.gdb'
+scratch = os.path.join(projDir, 'SATworkspace.gdb')
 
 #if the SATworkspace gdb already exists, set is as the workspace
 if arcpy.Exists(scratch):
@@ -79,7 +85,8 @@ if arcpy.Exists(scratch):
 
 #if the SATworkspace gdb doesn't already exist, create it and set it as the workspace
 else:
-    arcpy.CreateFileGDB_management('E:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS', 'SATworkspace.gdb')
+    #arcpy.CreateFileGDB_management('E:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS', 'SATworkspace.gdb')
+    arcpy.CreateFileGDB_management(projDir, 'SATworkspace.gdb')
     arcpy.env.workspace = scratch
 
 #create empty list for storing paths of temp data that need to be deleted at end of run
@@ -87,29 +94,46 @@ toDelete = list()
 
 ##############################################################################################################################################################################################################################################################
 #Get path for proposed project shapes and name of unique ID field from user input
-projects = arcpy.GetParameterAsText(0)
+# projects = arcpy.GetParameterAsText(0)
+# arcpy.AddMessage(f"param 0: {arcpy.GetParameterAsText(0)}")
+projects = r"D:\GISData\Personal\mstryker\ArcPro\SAT_tester\SAT_tester.gdb\rosendale_parcels"
 
 #Get query name from user input
-queEntName = arcpy.GetParameterAsText(1)
+# queEntName = arcpy.GetParameterAsText(1)
+# arcpy.AddMessage(f"param 1: {arcpy.GetParameterAsText(1)}")
+queEntName = "rosendale_sat4"
 queName = re.sub('\W+','',queEntName.lower())
 
+
 #Get name of unique numeric ID field (MUST BE INTEGER FIELD) from user input
-projIDField = arcpy.GetParameterAsText(2)
+# projIDField = arcpy.GetParameterAsText(2)
+# arcpy.AddMessage(f"param 2: {arcpy.GetParameterAsText(2)}")
+projIDField = "SATID"
 
 #Get optional name of project "name" field from user input
-projNameField = arcpy.GetParameterAsText(3)
+# projNameField = arcpy.GetParameterAsText(3)
+# arcpy.AddMessage(f"param 3: {arcpy.GetParameterAsText(3)}")
+projNameField = "project_name"
 
 #Get path for directory to write individual reports from user input
-outDir = arcpy.GetParameterAsText(4)
+# outDir = arcpy.GetParameterAsText(4)
+# arcpy.AddMessage(f"param 4: {arcpy.GetParameterAsText(4)}")
+outDir =  r"D:\GISData\Personal\mstryker\ArcPro\SAT_tester"
 
 #Get user input on whether they want the results written in individual reports for projects
-report = arcpy.GetParameterAsText(5)
+# report = arcpy.GetParameterAsText(5)
+# arcpy.AddMessage(f"param 5: {arcpy.GetParameterAsText(5)}")
+report = "true"
 
 #Get user input on whether they want maps auto generated **Currently not operational!
-maps = arcpy.GetParameterAsText(6)
+# maps = arcpy.GetParameterAsText(6)
+# arcpy.AddMessage(f"param 6: {arcpy.GetParameterAsText(6)}")
+maps = "true"
 
 #Get user input on whether they want the results in spatial format (dissolved feature class with attributes)
-spatial = arcpy.GetParameterAsText(7)
+# spatial = arcpy.GetParameterAsText(7)
+# arcpy.AddMessage(f"param 7: {arcpy.GetParameterAsText(7)}")
+spatial = "true"
 
 ############################################################################################################################################################################################################################################################
 #Derive path for output excel spreadsheet and pdf report based on user supplied output directory, query name, and name/time run stamp
@@ -427,8 +451,11 @@ try:
 
     #retrieve size list and largest and smallest sizes for reference
     sizeList = [x for x in bookDict['aquaticdiversity'] if x[0] == "Sens"][0]
-    lgstSize = max(sizeList)
-    smstSize = min(sizeList)
+    tmplist = sizeList[1:]
+    print(f"size of sizeList is {len(sizeList)} & size of tmpList is {len(tmplist)}")
+    #omit first element, it is text
+    lgstSize = max(sizeList[1:])
+    smstSize = min(sizeList[1:])
 
     #create new empty list for storing spp presence/absence data read from the csv table
     sppList = list()
@@ -804,12 +831,12 @@ for projID in sppDict:
         pixelArray = np.concatenate((pixelArray,numPixels))
 
     #compute the n term as the sum of columns in the pixelArray, the nxn-1 term, and the summed nxn-1 term
-    nterm = pixelArray.sum(axis=0).astype(long)
-    nxn_1 = (pixelArray.sum(axis=0))*(pixelArray.sum(axis=0)-1).astype(long)
-    summednxn_1 = sum(nxn_1).astype(long)
+    nterm = pixelArray.sum(axis=0).astype(numpy.int_)
+    nxn_1 = (pixelArray.sum(axis=0))*(pixelArray.sum(axis=0)-1).astype(numpy.int_)
+    summednxn_1 = sum(nxn_1).astype(numpy.int_)
 
     #compute N term as the sum of all values in the nterm array, and then calculate the NxN-1 term
-    Nterm = sum(nterm).astype(long)
+    Nterm = sum(nterm).astype(numpy.int_)
     NxN_1 = Nterm * (Nterm-1)
 
     #Compute Simpson's Index of Diversity and terrestrial diversity degree
@@ -2171,7 +2198,7 @@ arcpy.CopyFeatures_management(projects,shapeArchive+"\\SATQuery_"+str(queName)+"
 shutil.copy(outDir + "\\SATResults_" + str(queName) + "_" + str(runStamp) + ".xlsx", resultsArchive+"\\SATResults_"+str(queName)+"_"+str(runStamp)+".xlsx")
 
 #print status and caution messages, if applicable
-print("All done!  Check results in " + outDir
+print("All done!  Check results in " + outDir)
 arcpy.AddMessage("All done! Check results in " + outDir)
 
 if len(bigList) > 0:
