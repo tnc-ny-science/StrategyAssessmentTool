@@ -10,7 +10,7 @@
 #-------------------------------------------------------------------------------
 
 import arcpy
-print "Loading packages ..."
+print("Loading packages ...")
 arcpy.AddMessage("Loading packages ...")
 
 import shutil, re, sys #shutil used for making copy of spreadsheet to save in archives,
@@ -36,7 +36,7 @@ fooTime = time.strftime("%b %d, %Y %I:%M %p", time.localtime()) #Mon Day, Year H
 runStamp = user + "_" + str(currTime[0]) + str(currTime[1]) + str(currTime [2]) + "_" + str(currTime[3]) + str(currTime[4]) #name_yyyymmdd_hhmm
 
 #Set cell size environment, snapping environment, coordinate system as consistent with the 2011 NLCD grid
-print "Setting environment parameters and locating reference data ..."
+print("Setting environment parameters and locating reference data ...")
 arcpy.AddMessage("Setting environment parameters ...")
 coorSystem = arcpy.SpatialReference(5070) #5070 = WKID code for NAD_1983_Contiguous_USA_Albers
 
@@ -54,9 +54,15 @@ shapeArchive = 'D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRIC
 resultsArchive = 'D:\\gisdata\\Projects\\Regional\\StrategyAssessmentTool\\RESTRICTED_ComSnapshotArchive\\ResultsArchive'
 
 ############################################################################################################################################################################################################################################################
+#get project directory
+projDir = arcpy.mp.ArcGISProject('CURRENT').homeFolder
+#projDir = arcpy.mp.ArcGISProject('D:\GISData\Personal\mstryker\ArcPro\SAT_tester\SAT_tester.aprx').homeFolder
+arcpy.AddMessage(f"Current project directory is {projDir}")
+
 #set path to default SAT workspace
 ##scratch = 'D:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS\\SATworkspace.gdb'
-scratch = 'E:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS\\SATworkspace.gdb'
+#scratch = 'E:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS\\SATworkspace.gdb'
+scratch = os.path.join(projDir, 'SATworkspace.gdb')
 
 #if the SATworkspace gdb already exists, set is as the workspace
 if arcpy.Exists(scratch):
@@ -64,7 +70,8 @@ if arcpy.Exists(scratch):
 
 #if the SATworkspace gdb doesn't already exist, create it and set it as the workspace
 else:
-    arcpy.CreateFileGDB_management('D:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS', 'SATworkspace.gdb')
+    #arcpy.CreateFileGDB_management('D:\\Users\\'+ os.getenv('username') + '\\Documents\\ArcGIS', 'SATworkspace.gdb')
+    arcpy.CreateFileGDB_management(projDir, 'SATworkspace.gdb')
     arcpy.env.workspace = scratch
 
 #create empty list for storing paths of temp data that need to be deleted at end of run
@@ -105,18 +112,18 @@ alFields = {u'GEOID_Mod': 'Census unit ID', u'Households_Est': 'Estimated number
 
 ###############################################################################################################################################################################################################################################################
 #Prepare proposed project shapes and attributes
-print "Preparing vector data ..."
+print("Preparing vector data ...")
 arcpy.AddMessage("Preparing vector data ...")
 
 #Test to see if input project shapes are a polygon feature class, if not, print error message and terminate the script
 if arcpy.Describe(projects).shapeType != 'Polygon':
-    print "FAILED FEATURE CLASS TYPE CHECK: You submitted a " + arcpy.Describe(projects).shapeType + " feature class, terminating analysis ... Please try again using a polygon feature class."
+    print("FAILED FEATURE CLASS TYPE CHECK: You submitted a " + arcpy.Describe(projects).shapeType + " feature class, terminating analysis ... Please try again using a polygon feature class.")
     arcpy.AddMessage("FAILED FEATURE CLASS TYPE CHECK: You submitted a " + arcpy.Describe(projects).shapeType + " feature class, terminating analysis ... Please try again using a polygon feature class.")
     sys.exit(0)
 
 #Test to see if input project shapes have a spatial reference defined, if not, print error message and terminate the script
 if arcpy.Describe(projects).spatialReference.name == 'Unknown':
-    print "FAILED SPATIAL REFERENCE CHECK: Project feature class does not have a spatial reference defined, terminating analysis ... Please fix the problem and try again."
+    print("FAILED SPATIAL REFERENCE CHECK: Project feature class does not have a spatial reference defined, terminating analysis ... Please fix the problem and try again.")
     arcpy.AddMessage("FAILED SPATIAL REFERENCE CHECK: Project feature class does not have a spatial reference defined, terminating analysis ... Please fix the problem and try again.")
     sys.exit(0)
 
@@ -147,7 +154,7 @@ smallList = list()
 bigList = list()
 
 #process input polygon data
-print "Checking project polygons ..."
+print("Checking project polygons ...")
 arcpy.AddMessage("Checking project polygons ...")
 
 #Iterate through the projects in the dissolved project feature class and retrieve the IDs and vector area in hectares
@@ -155,12 +162,12 @@ with arcpy.da.UpdateCursor(projWork,[projIDField,'FIRST_' + str(projNameField),"
     for row in cursor:
         #check project size and add items to small or big list as appropriate
         if row[2] < 1:
-            print "   FAILED CHECKS: Project " + str(row[0]) + " is smaller than the MINIMUM size threshold (1 Ha) and will not be analyzed ..."
+            print("   FAILED CHECKS: Project " + str(row[0]) + " is smaller than the MINIMUM size threshold (1 Ha) and will not be analyzed ...")
             arcpy.AddMessage("   FAILED CHECKS: Project " + str(row[0]) + " is smaller than the MINIMUM size threshold (1 Ha) and will not be analyzed ...")
             cursor.deleteRow()
             smallList.append([row[0], row[1]])
 ##        elif row[2] > 24600:
-##            print "   FAILED CHECK: Project " + str(row[0]) + " is larger than the MAXIMUM size threshold (24,600 Ha) and will not be analyzed ..."
+##            print("   FAILED CHECK: Project " + str(row[0]) + " is larger than the MAXIMUM size threshold (24,600 Ha) and will not be analyzed ...")
 ##            arcpy.AddMessage("   FAILED CHECK: Project " + str(row[0]) + " is larger than the MAXIMUM size threshold (24,600 Ha) and will not be analyzed ...")
 ##            cursor.deleteRow()
 ##            bigList.append([row[0], row[1]])
@@ -179,14 +186,14 @@ with arcpy.da.UpdateCursor(projWork,[projIDField,'FIRST_' + str(projNameField),"
 
 #check number of features remaining in projWork, if no features remain after removing too big and too small projects, terminate analysis
 if int(arcpy.GetCount_management(projWork)[0]) == 0:
-    print "   FAILED CHECKS: No projects met the size requirements, terminating analysis ..."
+    print("   FAILED CHECKS: No projects met the size requirements, terminating analysis ...")
     arcpy.AddMessage("   FAILED CHECKS: No projects met the size requirements, terminating analysis ...")
     arcpy.Delete_management(projWork)
     sys.exit(0)
 
 #############################################################################################################################################################################################################################################################
 #Create dictionaries of ALICE and EJSCREEN data
-print "Importing reference data ..."
+print("Importing reference data ...")
 arcpy.AddMessage("Importing reference data ...")
 
 aliceData = dict() #aliceData = {'OBJECTID': ['GEOID10_Mod','Households_Est', 'ALICEPOV_PCT'] ... }
@@ -202,7 +209,7 @@ with arcpy.da.SearchCursor(ejscreen, ['OBJECTID', 'ID', 'ACSTOTPOP', 'MINORPCT',
 
 #############################################################################################################################################################################################################################################################
 #Generate near tables between projects and ALICE and EJSCREEN data data using 1/2 mile as the search radius
-print "Identifying census units near projects ..."
+print("Identifying census units near projects ...")
 arcpy.AddMessage("Finding nearby census units ...")
 
 nearAlice = arcpy.GenerateNearTable_analysis(projWork, alice, scratch + "\\" + str(queName) + "_" + str(runStamp) + "_allprojects_near_alice", "0.5 Miles", "NO_LOCATION", "NO_ANGLE", "ALL")
@@ -222,7 +229,7 @@ toDelete.append(nearEjscreen)
 #aliceData = {'OBJECTID': ['GEOID_Mod', 'Households_Est', 'ALICEPOV_PCT'] ... }
 #ejscreenData = {'OBJECTID': ['ID', 'ACSTOTPOP', 'MINORPCT', 'LESSHSPCT', 'LINGISOPCT', 'UNDER5PCT', 'OVER64PCT', 'DISABLPCT'] ... }
 
-print "Reading results ..."
+print("Reading results ...")
 arcpy.AddMessage("Reading results ...")
 with arcpy.da.SearchCursor(scratch + "\\" + str(queName) + "_" + str(runStamp) + "_allprojects_near_alice", ['IN_FID', 'NEAR_FID']) as cursor:
     for row in cursor:
@@ -280,7 +287,7 @@ with arcpy.da.SearchCursor(scratch + "\\" + str(queName) + "_" + str(runStamp) +
 
 #############################################################################################################################################################################################################################################################
 #Write results to excel spreadsheet
-print "Writing results to Excel spreadsheet ..."
+print("Writing results to Excel spreadsheet ...")
 arcpy.AddMessage("Writing results to Excel spreadsheet ...")
 
 #create new workbook with xlswriter
@@ -474,7 +481,7 @@ workbook.close()
 
 #############################################################################################################################################################################################################################################################
 #Clean up in_memory workspace and intermediate files
-print "Cleaning up temporary data files ..."
+print("Cleaning up temporary data files ...")
 arcpy.AddMessage("Cleaning up temporary data files ...")
 
 arcpy.Delete_management("in_memory")
@@ -483,7 +490,7 @@ for item in toDelete:
     try:
         arcpy.Delete_management(item)
     except:
-        print "Couldn't delete intermediate dataset in default geodatabase " + scratch + "; please clean up manually!"
+        print("Couldn't delete intermediate dataset in default geodatabase " + scratch + "; please clean up manually!")
         arcpy.AddMessage("Couldn't delete intermediate dataset in default geodatabase " + scratch + "; please clean up manually!")
 
 #create copy of project shapes and results for the query tool archive
@@ -492,17 +499,17 @@ shutil.copy(outDir + "\\SATCommunitySnapshot_" + str(queName) + "_" + str(runSta
 
 
 #print status and caution messages, if applicable
-print "All done!  Check results in " + outDir
+print("All done!  Check results in " + outDir)
 arcpy.AddMessage("All done! Check results in " + outDir)
 
 if len(bigList) > 0:
-    print "   REMINDER: Project(s) " + str(bigList) + " are larger than the MAXIMUM size threshold (24,600 Ha) and were not analyzed ..."
+    print("   REMINDER: Project(s) " + str(bigList) + " are larger than the MAXIMUM size threshold (24,600 Ha) and were not analyzed ...")
     arcpy.AddMessage("   REMINDER: Project(s) " + str(bigList) + " are larger than the MAXIMUM size threshold (24,600 Ha) and were not analyzed ...")
 
 if len(smallList) > 0:
-    print "   REMINDER: Project(s) " + str(smallList) + " are smaller than the MINIMUM size threshold (1 Ha) and were not analyzed ..."
+    print("   REMINDER: Project(s) " + str(smallList) + " are smaller than the MINIMUM size threshold (1 Ha) and were not analyzed ...")
     arcpy.AddMessage("   REMINDER: Project(s) " + str(smallList) + " are smaller than the MINIMUM size threshold (1 Ha) and were not analyzed ...")
 
 elapsed = round((time.time() - start)/60.0,2)
-print "took " + str(elapsed) + " minutes for " + str(len(projDict)) + " projects"
+print("took " + str(elapsed) + " minutes for " + str(len(projDict)) + " projects")
 arcpy.AddMessage("took " + str(elapsed) + " minutes for " + str(len(projDict)) + " projects")
